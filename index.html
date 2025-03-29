@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthReport Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .neumorphic {
+            background: #e0e5ec;
+            box-shadow: 10px 10px 20px #b8bec7,
+                       -10px -10px 20px #ffffff;
+            border-radius: 15px;
+        }
+        .neumorphic-inset {
+            background: #e0e5ec;
+            box-shadow: inset 5px 5px 10px #b8bec7,
+                       inset -5px -5px 10px #ffffff;
+            border-radius: 15px;
+        }
+        body {
+            background: #e0e5ec;
+            min-height: 100vh;
+        }
+        .loading {
+            display: none;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="neumorphic p-6 mb-8">
+            <h1 class="text-3xl font-bold text-gray-700 text-center">Health Report Analyzer</h1>
+            <p class="text-center text-gray-600 mt-2">Upload your medical reports for instant analysis</p>
+        </header>
+
+        <main class="neumorphic p-6">
+            <div class="mb-8">
+                <div class="neumorphic-inset p-8 text-center">
+                    <label class="cursor-pointer">
+                        <input type="file" accept="image/*" id="reportUpload" class="hidden" />
+                        <div class="flex flex-col items-center gap-4">
+                            <i class="bi bi-cloud-upload text-4xl text-blue-600"></i>
+                            <span class="text-gray-700">Drop your report here or click to upload</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div id="loading" class="loading text-center p-4">
+                <i class="bi bi-gear-wide-connected text-3xl text-blue-600"></i>
+                <p>Analyzing your report...</p>
+            </div>
+
+            <div id="results" class="hidden">
+                <div class="neumorphic-inset p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">Analysis Results</h2>
+                    <div id="analysisContent" class="space-y-4"></div>
+                </div>
+
+                <div class="neumorphic-inset p-6">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">Recommended Tests</h2>
+                    <div id="recommendedTests" class="space-y-2"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const uploadInput = document.getElementById('reportUpload');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const analysisContent = document.getElementById('analysisContent');
+        const recommendedTests = document.getElementById('recommendedTests');
+
+        uploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show loading
+            loading.style.display = 'block';
+            results.classList.add('hidden');
+
+            try {
+                // Use Tesseract.js to extract text from image
+                const worker = await Tesseract.createWorker();
+                await worker.loadLanguage('eng');
+                await worker.initialize('eng');
+                const { data: { text } } = await worker.recognize(file);
+                await worker.terminate();
+
+                // Simple analysis (in real world, this would be more sophisticated)
+                const analysis = analyzeReport(text);
+                
+                // Display results
+                displayResults(analysis);
+            } catch (error) {
+                alert('Error analyzing the report. Please try again.');
+                console.error(error);
+            }
+
+            loading.style.display = 'none';
+            results.classList.remove('hidden');
+        });
+
+        function analyzeReport(text) {
+            // This is a simplified analysis. In reality, you'd want more sophisticated NLP
+            const analysis = {
+                findings: [],
+                recommendations: []
+            };
+
+            // Simple keyword matching
+            if (text.toLowerCase().includes('cholesterol')) {
+                analysis.findings.push('Cholesterol levels detected in report');
+                analysis.recommendations.push('Complete Lipid Profile');
+            }
+            if (text.toLowerCase().includes('glucose')) {
+                analysis.findings.push('Glucose levels mentioned in report');
+                analysis.recommendations.push('HbA1c Test');
+            }
+            if (text.toLowerCase().includes('blood pressure')) {
+                analysis.findings.push('Blood pressure readings found');
+                analysis.recommendations.push('24-hour BP Monitoring');
+            }
+
+            // Add default recommendations
+            analysis.recommendations.push('Annual Physical Examination');
+            analysis.recommendations.push('Complete Blood Count');
+
+            return analysis;
+        }
+
+        function displayResults(analysis) {
+            // Display findings
+            analysisContent.innerHTML = analysis.findings.length > 0 
+                ? analysis.findings.map(finding => `
+                    <div class="p-3 bg-white rounded-lg shadow-sm">
+                        <i class="bi bi-clipboard2-pulse text-blue-600 mr-2"></i>
+                        ${finding}
+                    </div>
+                `).join('')
+                : '<p class="text-gray-600">No specific findings detected. Please consult with your healthcare provider.</p>';
+
+            // Display recommendations
+            recommendedTests.innerHTML = analysis.recommendations.map(test => `
+                <div class="p-3 bg-white rounded-lg shadow-sm flex items-center">
+                    <i class="bi bi-clipboard2-check text-green-600 mr-2"></i>
+                    ${test}
+                </div>
+            `).join('');
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
